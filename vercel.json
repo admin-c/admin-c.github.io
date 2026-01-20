@@ -10,26 +10,15 @@
     {
       "src": "/api/update-data",
       "dest": "/api/update-data.js",
-      "methods": ["POST", "OPTIONS", "GET"]
+      "methods": ["POST", "OPTIONS"]
     },
     {
       "src": "/admin",
-      "dest": "/admin.html",
-      "headers": {
-        "Cache-Control": "no-cache"
-      }
+      "dest": "/admin.html"
     },
     {
       "src": "/table",
       "dest": "/table.html"
-    },
-    {
-      "src": "/(.*\\.(html|css|js|json|png|jpg|ico))",
-      "dest": "/$1"
-    },
-    {
-      "src": "/",
-      "dest": "/index.html"
     },
     {
       "src": "/(.*)",
@@ -50,38 +39,8 @@
         {
           "key": "Access-Control-Allow-Origin",
           "value": "*"
-        },
-        {
-          "key": "Access-Control-Allow-Methods",
-          "value": "POST, GET, OPTIONS, PUT, DELETE"
-        },
-        {
-          "key": "Access-Control-Allow-Headers",
-          "value": "Content-Type, Authorization, X-Requested-With"
-        }
-      ]
-    },
-    {
-      "source": "/(.*)",
-      "headers": [
-        {
-          "key": "X-Frame-Options",
-          "value": "DENY"
-        },
-        {
-          "key": "X-Content-Type-Options",
-          "value": "nosniff"
-        },
-        {
-          "key": "Referrer-Policy",
-          "value": "strict-origin-when-cross-origin"
         }
       ]
     }
-  ],
-  "env": {},
-  "github": {
-    "silent": true,
-    "autoAlias": true
-  }
+  ]
 }
