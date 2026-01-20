@@ -28,7 +28,7 @@ function checkAccess() {
 // Загрузка данных
 async function loadData() {
     try {
-        const response = await fetch(`${API_URL}/get-data`);
+        const response = await fetch(`${API_URL}/update-data?action=get-data`);
         leagueData = await response.json();
         renderAdminPanel();
     } catch (error) {
@@ -395,3 +395,4 @@ if (checkAccess()) {
     setInterval(loadData, 30000);
 
 }
+
