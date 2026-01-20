@@ -1,5 +1,5 @@
 // Конфигурация
-const API_URL = '/api/update-data';
+const API_URL = 'https://champions-league-mu.vercel.app/api/update-data';
 const ADMIN_SECRET = 'Ali';
 let leagueData = null;
 let currentSHA = null;
@@ -861,3 +861,4 @@ if (checkAccess()) {
         }
     });
 }
+
