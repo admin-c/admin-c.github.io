@@ -922,4 +922,86 @@ body {
     .floating-stat {
         min-width: 80px;
     }
+
+}
+/* Admin specific styles */
+.admin-notification {
+    animation: slideIn 0.3s ease;
+}
+
+@keyframes slideIn {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+.loader-message {
+    text-align: center;
+}
+
+.loader-message:after {
+    content: '...';
+    animation: dots 1.5s steps(4, end) infinite;
+}
+
+@keyframes dots {
+    0%, 20% { content: '.'; }
+    40% { content: '..'; }
+    60%, 100% { content: '...'; }
+}
+
+/* Стили для форм админки */
+.match-row {
+    display: grid;
+    grid-template-columns: 2fr 1fr 2fr;
+    gap: 15px;
+    align-items: center;
+    margin-bottom: 20px;
+    padding: 15px;
+    background: rgba(255,255,255,0.05);
+    border-radius: 10px;
+}
+
+.team-select {
+    background: rgba(255,255,255,0.1);
+    border: 1px solid rgba(255,255,255,0.2);
+    color: white;
+    padding: 10px;
+    border-radius: 8px;
+    width: 100%;
+}
+
+.score-input {
+    width: 60px;
+    text-align: center;
+    font-size: 1.2rem;
+    font-weight: bold;
+}
+
+/* Статусы */
+.status-badge {
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.status-pending {
+    background: rgba(255, 193, 7, 0.2);
+    color: #ffc107;
+}
+
+.status-confirmed {
+    background: rgba(0, 255, 136, 0.2);
+    color: #00ff88;
+}
+
+.status-cancelled {
+    background: rgba(255, 51, 102, 0.2);
+    color: #ff3366;
 }
