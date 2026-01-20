@@ -3,7 +3,7 @@
 const { Octokit } = require('@octokit/rest');
 
 module.exports = async (req, res) => {
-    // Настройка CORS
+    // ДОБАВЬТЕ ЭТИ ЗАГОЛОВКИ В САМОМ НАЧАЛЕ:
     res.setHeader('Access-Control-Allow-Credentials', true);
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
@@ -12,6 +12,7 @@ module.exports = async (req, res) => {
         'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version'
     );
 
+    // Обработка preflight запросов
     if (req.method === 'OPTIONS') {
         res.status(200).end();
         return;
@@ -74,4 +75,5 @@ module.exports = async (req, res) => {
         console.error('GitHub API error:', error);
         return res.status(500).json({ error: error.message });
     }
+
 };
