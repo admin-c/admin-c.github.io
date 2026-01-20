@@ -1,19 +1,13 @@
 {
-  "rewrites": [
-    {
-      "source": "/admin",
-      "destination": "/admin.html"
+  "functions": {
+    "api/update-data.js": {
+      "maxDuration": 30,
+      "memory": 1024
     }
-  ],
-  "headers": [
-    {
-      "source": "/(.*)",
-      "headers": [
-        {
-          "key": "Cache-Control",
-          "value": "public, max-age=0, must-revalidate"
-        }
-      ]
-    }
-  ]
+{
+  "env": {
+    "GITHUB_TOKEN": "@github_token_secret",
+    "ADMIN_SECRET": "@admin_secret",
+    "GITHUB_REPO": "@github_repo"
+  }
 }
