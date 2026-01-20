@@ -1,14 +1,43 @@
 {
+  "version": 2,
+  "builds": [
+    {
+      "src": "api/update-data.js",
+      "use": "@vercel/node"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/api/update-data",
+      "dest": "/api/update-data.js",
+      "methods": ["POST", "OPTIONS"]
+    },
+    {
+      "src": "/admin",
+      "dest": "/admin.html"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/index.html"
+    }
+  ],
+  "env": {
+    "ADMIN_SECRET": "@admin_secret",
+    "GITHUB_TOKEN": "@github_token",
+    "GITHUB_REPO": "@github_repo"
+  },
+  "github": {
+    "silent": true,
+    "enabled": true
+  },
+  "regions": ["fra1"],
   "functions": {
     "api/update-data.js": {
       "maxDuration": 30,
-      "memory": 1024
+      "memory": 1024,
+      "runtime": "nodejs18.x"
     }
   },
-  "rewrites": [
-    {
-      "source": "/admin",
-      "destination": "/admin.html"
-    }
-  ]
+  "installCommand": "npm install @octokit/rest",
+  "framework": null
 }
