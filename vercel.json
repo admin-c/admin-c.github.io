@@ -10,27 +10,32 @@
     {
       "src": "/api/update-data",
       "dest": "/api/update-data.js",
-      "methods": ["POST", "OPTIONS"]
+      "methods": ["POST", "OPTIONS", "GET"]
     },
     {
       "src": "/admin",
-      "dest": "/admin.html"
+      "dest": "/admin.html",
+      "headers": {
+        "Cache-Control": "no-cache"
+      }
+    },
+    {
+      "src": "/table",
+      "dest": "/table.html"
+    },
+    {
+      "src": "/(.*\\.(html|css|js|json|png|jpg|ico))",
+      "dest": "/$1"
+    },
+    {
+      "src": "/",
+      "dest": "/index.html"
     },
     {
       "src": "/(.*)",
       "dest": "/index.html"
     }
   ],
-  "env": {
-    "ADMIN_SECRET": "@admin_secret",
-    "GITHUB_TOKEN": "@github_token",
-    "GITHUB_REPO": "@github_repo"
-  },
-  "github": {
-    "silent": true,
-    "enabled": true
-  },
-  "regions": ["fra1"],
   "functions": {
     "api/update-data.js": {
       "maxDuration": 30,
@@ -38,6 +43,45 @@
       "runtime": "nodejs18.x"
     }
   },
-  "installCommand": "npm install @octokit/rest",
-  "framework": null
+  "headers": [
+    {
+      "source": "/api/(.*)",
+      "headers": [
+        {
+          "key": "Access-Control-Allow-Origin",
+          "value": "*"
+        },
+        {
+          "key": "Access-Control-Allow-Methods",
+          "value": "POST, GET, OPTIONS, PUT, DELETE"
+        },
+        {
+          "key": "Access-Control-Allow-Headers",
+          "value": "Content-Type, Authorization, X-Requested-With"
+        }
+      ]
+    },
+    {
+      "source": "/(.*)",
+      "headers": [
+        {
+          "key": "X-Frame-Options",
+          "value": "DENY"
+        },
+        {
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        },
+        {
+          "key": "Referrer-Policy",
+          "value": "strict-origin-when-cross-origin"
+        }
+      ]
+    }
+  ],
+  "env": {},
+  "github": {
+    "silent": true,
+    "autoAlias": true
+  }
 }
