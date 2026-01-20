@@ -1,5 +1,5 @@
 // Конфигурация API
-const API_BASE_URL = 'https://ваш-проект.vercel.app/api';
+const API_BASE_URL = 'https://champions-league-mu.vercel.app/api';
 let currentUser = null;
 let leagueData = null;
 
@@ -378,4 +378,5 @@ function initPWA() {
                 });
         });
     }
+
 }
