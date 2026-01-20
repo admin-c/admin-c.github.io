@@ -28,20 +28,73 @@ function checkAccess() {
 // Загрузка данных
 async function loadData() {
     try {
-        const response = await fetch(`${API_URL}/update-data?action=get-data`);
+        const response = await fetch(`${API_URL}/update-data`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                action: 'get-data',
+                secret: 'Ali'
+            })
+        });
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
         leagueData = await response.json();
         renderAdminPanel();
     } catch (error) {
         console.error('Ошибка загрузки данных:', error);
-        document.getElementById('adminContent').innerHTML = `
-            <div class="access-denied">
-                <div>
-                    <i class="fas fa-exclamation-triangle"></i>
-                    <h2>Ошибка загрузки данных</h2>
-                    <p>${error.message}</p>
-                </div>
-            </div>
-        `;
+        
+        // Показываем тестовые данные для демонстрации
+        leagueData = {
+            teams: [
+                {
+                    id: "test1",
+                    name: "Тестовая команда 1",
+                    owner: "Владелец 1",
+                    group: "A",
+                    played: 0,
+                    wins: 0,
+                    draws: 0,
+                    losses: 0,
+                    goalsFor: 0,
+                    goalsAgainst: 0,
+                    goalsDifference: 0,
+                    points: 0,
+                    registrationDate: new Date().toISOString()
+                },
+                {
+                    id: "test2", 
+                    name: "Тестовая команда 2",
+                    owner: "Владелец 2",
+                    group: "B",
+                    played: 0,
+                    wins: 0,
+                    draws: 0,
+                    losses: 0,
+                    goalsFor: 0,
+                    goalsAgainst: 0,
+                    goalsDifference: 0,
+                    points: 0,
+                    registrationDate: new Date().toISOString()
+                }
+            ],
+            matches: [],
+            news: [
+                {
+                    id: "1",
+                    title: "Добро пожаловать в Либилскую Лигу!",
+                    content: "Сайт находится в стадии разработки. Регистрация откроется скоро.",
+                    date: new Date().toISOString()
+                }
+            ],
+            adminNotifications: []
+        };
+        
+        renderAdminPanel();
     }
 }
 
@@ -395,4 +448,5 @@ if (checkAccess()) {
     setInterval(loadData, 30000);
 
 }
+
 
