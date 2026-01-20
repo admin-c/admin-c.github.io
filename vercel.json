@@ -4,10 +4,11 @@
       "maxDuration": 30,
       "memory": 1024
     }
-{
-  "env": {
-    "GITHUB_TOKEN": "@github_token_secret",
-    "ADMIN_SECRET": "@admin_secret",
-    "GITHUB_REPO": "@github_repo"
-  }
+  },
+  "rewrites": [
+    {
+      "source": "/admin",
+      "destination": "/admin.html"
+    }
+  ]
 }
