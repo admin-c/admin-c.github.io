@@ -1,8 +1,8 @@
-// Конфигурация
+// Конфигурация API
+const API_URL = 'https://champions-league-mu.vercel.app/api/update-data';
 const ADMIN_SECRET = 'Ali';
-const API_URL = 'https://champions-league-mu.vercel.app/api';
-
 let leagueData = null;
+let currentDataSHA = null;
 
 // Проверка доступа
 function checkAccess() {
@@ -16,6 +16,9 @@ function checkAccess() {
                     <i class="fas fa-lock" style="font-size: 48px; margin-bottom: 20px;"></i>
                     <h2>Доступ запрещён</h2>
                     <p>Неверный секретный ключ</p>
+                    <p style="margin-top: 20px; font-size: 14px; color: #888;">
+                        Используйте: /admin?secret=Ali
+                    </p>
                 </div>
             </div>
         `;
@@ -25,367 +28,137 @@ function checkAccess() {
     return true;
 }
 
-// Загрузка данных
+// Загрузка данных с обработкой ошибок
 async function loadData() {
     try {
-        const response = await fetch(`${API_URL}/update-data`, {
+        showLoading(true);
+        
+        const response = await fetch(API_URL, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
             },
             body: JSON.stringify({
                 action: 'get-data',
-                secret: 'Ali'
+                secret: ADMIN_SECRET
             })
         });
         
         if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(`HTTP ${response.status}: ${errorData.error || response.statusText}`);
         }
         
-        leagueData = await response.json();
+        const result = await response.json();
+        
+        // Сохраняем SHA для будущих обновлений
+        if (result._meta?.sha) {
+            currentDataSHA = result._meta.sha;
+        }
+        
+        // Убираем мета-данные
+        const { _meta, ...data } = result;
+        leagueData = data;
+        
         renderAdminPanel();
+        
     } catch (error) {
         console.error('Ошибка загрузки данных:', error);
+        showError(`Ошибка загрузки: ${error.message}`);
         
-        // Показываем тестовые данные для демонстрации
-        leagueData = {
-            teams: [
-                {
-                    id: "test1",
-                    name: "Тестовая команда 1",
-                    owner: "Владелец 1",
-                    group: "A",
-                    played: 0,
-                    wins: 0,
-                    draws: 0,
-                    losses: 0,
-                    goalsFor: 0,
-                    goalsAgainst: 0,
-                    goalsDifference: 0,
-                    points: 0,
-                    registrationDate: new Date().toISOString()
-                },
-                {
-                    id: "test2", 
-                    name: "Тестовая команда 2",
-                    owner: "Владелец 2",
-                    group: "B",
-                    played: 0,
-                    wins: 0,
-                    draws: 0,
-                    losses: 0,
-                    goalsFor: 0,
-                    goalsAgainst: 0,
-                    goalsDifference: 0,
-                    points: 0,
-                    registrationDate: new Date().toISOString()
-                }
-            ],
-            matches: [],
-            news: [
-                {
-                    id: "1",
-                    title: "Добро пожаловать в Либилскую Лигу!",
-                    content: "Сайт находится в стадии разработки. Регистрация откроется скоро.",
-                    date: new Date().toISOString()
-                }
-            ],
-            adminNotifications: []
-        };
-        
-        renderAdminPanel();
+        // Пробуем загрузить из локального хранилища
+        const localData = localStorage.getItem('leagueDataBackup');
+        if (localData) {
+            try {
+                leagueData = JSON.parse(localData);
+                showWarning('Используются локальные данные из backup');
+                renderAdminPanel();
+            } catch (e) {
+                showError('Не удалось загрузить даже локальные данные');
+                renderEmptyAdminPanel();
+            }
+        } else {
+            renderEmptyAdminPanel();
+        }
+    } finally {
+        showLoading(false);
     }
 }
 
-// Рендер админ-панели
-function renderAdminPanel() {
-    if (!leagueData) return;
-    
-    document.getElementById('adminContent').innerHTML = `
-        <div class="admin-header">
-            <h1><i class="fas fa-crown"></i> Админ-панель Либилской Лиги</h1>
-            <p>Управление лигой | Последнее обновление: ${new Date().toLocaleString()}</p>
-            <div style="display: flex; gap: 15px; margin-top: 15px;">
-                <div style="background: rgba(0, 255, 136, 0.2); padding: 10px 20px; border-radius: 10px;">
-                    <strong>${leagueData.teams.length}</strong> команд
-                </div>
-                <div style="background: rgba(0, 204, 255, 0.2); padding: 10px 20px; border-radius: 10px;">
-                    <strong>${leagueData.matches.length}</strong> матчей
-                </div>
-                <div style="background: rgba(255, 51, 102, 0.2); padding: 10px 20px; border-radius: 10px;">
-                    <strong>${leagueData.adminNotifications?.filter(n => !n.read).length || 0}</strong> новых уведомлений
-                </div>
-            </div>
-        </div>
-        
-        <div class="admin-grid">
-            <!-- Управление командами -->
-            <div class="admin-card">
-                <h3><i class="fas fa-users"></i> Управление командами</h3>
-                <div class="teams-list">
-                    ${leagueData.teams.map(team => `
-                        <div class="team-item">
-                            <div>
-                                <strong>${team.name}</strong>
-                                <div style="font-size: 12px; color: #888;">${team.owner} | Группа ${team.group}</div>
-                            </div>
-                            <div>
-                                <span style="background: rgba(0, 255, 136, 0.2); padding: 3px 10px; border-radius: 10px; font-size: 12px;">
-                                    ${team.points} очков
-                                </span>
-                            </div>
-                        </div>
-                    `).join('')}
-                </div>
-                <button onclick="addTeam()" class="admin-btn">
-                    <i class="fas fa-plus"></i> Добавить команду
-                </button>
-            </div>
-            
-            <!-- Добавление новости -->
-            <div class="admin-card">
-                <h3><i class="fas fa-newspaper"></i> Добавить новость</h3>
-                <div class="form-group">
-                    <label>Заголовок новости</label>
-                    <input type="text" id="newsTitle" class="admin-input" placeholder="Заголовок">
-                </div>
-                <div class="form-group">
-                    <label>Текст новости</label>
-                    <textarea id="newsContent" class="admin-input" rows="4" placeholder="Текст новости"></textarea>
-                </div>
-                <button onclick="addNews()" class="admin-btn">
-                    <i class="fas fa-paper-plane"></i> Опубликовать новость
-                </button>
-            </div>
-            
-            <!-- Управление матчами -->
-            <div class="admin-card">
-                <h3><i class="fas fa-futbol"></i> Управление матчами</h3>
-                <div class="form-group">
-                    <label>Добавить матч</label>
-                    <select id="homeTeam" class="admin-input">
-                        <option value="">Выберите домашнюю команду</option>
-                        ${leagueData.teams.map(team => `
-                            <option value="${team.id}">${team.name}</option>
-                        `).join('')}
-                    </select>
-                    <select id="awayTeam" class="admin-input" style="margin-top: 10px;">
-                        <option value="">Выберите гостевую команду</option>
-                        ${leagueData.teams.map(team => `
-                            <option value="${team.id}">${team.name}</option>
-                        `).join('')}
-                    </select>
-                    <div style="display: flex; gap: 10px; margin-top: 10px;">
-                        <input type="number" id="homeScore" class="admin-input match-input" placeholder="Д">
-                        <span style="align-self: center;">-</span>
-                        <input type="number" id="awayScore" class="admin-input match-input" placeholder="Г">
-                    </div>
-                    <input type="datetime-local" id="matchDate" class="admin-input" style="margin-top: 10px;">
-                </div>
-                <button onclick="addMatch()" class="admin-btn">
-                    <i class="fas fa-save"></i> Сохранить матч
-                </button>
-            </div>
-            
-            <!-- Уведомления -->
-            <div class="admin-card">
-                <h3><i class="fas fa-bell"></i> Уведомления о регистрациях</h3>
-                <div class="news-list">
-                    ${(leagueData.adminNotifications || []).map(notif => `
-                        <div class="news-item ${notif.read ? '' : 'unread'}">
-                            <div>
-                                <strong>${notif.message}</strong>
-                                <div style="font-size: 12px; color: #888;">${new Date(notif.date).toLocaleString()}</div>
-                            </div>
-                            ${!notif.read ? `
-                                <span class="status-badge pending">Новое</span>
-                            ` : `
-                                <span class="status-badge confirmed">Просмотрено</span>
-                            `}
-                        </div>
-                    `).join('')}
-                </div>
-                <button onclick="markAllAsRead()" class="admin-btn">
-                    <i class="fas fa-check-double"></i> Отметить все как прочитанные
-                </button>
-            </div>
-            
-            <!-- Экстренные действия -->
-            <div class="admin-card">
-                <h3><i class="fas fa-tools"></i> Экстренные действия</h3>
-                <div style="display: flex; flex-direction: column; gap: 10px;">
-                    <button onclick="updateAllData()" class="admin-btn">
-                        <i class="fas fa-sync"></i> Обновить все данные
-                    </button>
-                    <button onclick="resetTournament()" class="admin-btn delete">
-                        <i class="fas fa-trash"></i> Сбросить турнир
-                    </button>
-                    <button onclick="backupData()" class="admin-btn">
-                        <i class="fas fa-download"></i> Скачать backup данных
-                    </button>
-                </div>
-            </div>
-        </div>
-        
-        <div style="margin-top: 40px; padding: 20px; background: rgba(0,0,0,0.5); border-radius: 15px;">
-            <h3><i class="fas fa-code"></i> Статус API</h3>
-            <div style="display: flex; gap: 20px; margin-top: 15px;">
-                <div style="padding: 10px 20px; background: rgba(0, 255, 136, 0.1); border-radius: 10px;">
-                    <strong>GitHub API:</strong> <span style="color: #00ff88;">●</span> Работает
-                </div>
-                <div style="padding: 10px 20px; background: rgba(0, 204, 255, 0.1); border-radius: 10px;">
-                    <strong>Vercel Functions:</strong> <span style="color: #00ccff;">●</span> Активны
-                </div>
-                <div style="padding: 10px 20px; background: rgba(255, 193, 7, 0.1); border-radius: 10px;">
-                    <strong>Последняя синхронизация:</strong> 5 мин назад
-                </div>
-            </div>
-        </div>
-    `;
-}
-
-// Функции админ-панели
-async function addNews() {
-    const title = document.getElementById('newsTitle').value;
-    const content = document.getElementById('newsContent').value;
-    
-    if (!title || !content) {
-        alert('Заполните все поля');
-        return;
-    }
-    
-    const newNews = {
-        id: Date.now().toString(),
-        title,
-        content,
-        date: new Date().toISOString()
-    };
-    
-    leagueData.news.unshift(newNews);
-    await saveData();
-    
-    document.getElementById('newsTitle').value = '';
-    document.getElementById('newsContent').value = '';
-    
-    alert('Новость добавлена!');
-    renderAdminPanel();
-}
-
-async function addMatch() {
-    const homeTeamId = document.getElementById('homeTeam').value;
-    const awayTeamId = document.getElementById('awayTeam').value;
-    const homeScore = parseInt(document.getElementById('homeScore').value) || 0;
-    const awayScore = parseInt(document.getElementById('awayScore').value) || 0;
-    const matchDate = document.getElementById('matchDate').value;
-    
-    if (!homeTeamId || !awayTeamId) {
-        alert('Выберите команды');
-        return;
-    }
-    
-    if (homeTeamId === awayTeamId) {
-        alert('Команда не может играть сама с собой');
-        return;
-    }
-    
-    const homeTeam = leagueData.teams.find(t => t.id === homeTeamId);
-    const awayTeam = leagueData.teams.find(t => t.id === awayTeamId);
-    
-    const newMatch = {
-        id: Date.now().toString(),
-        homeTeam: homeTeam.name,
-        awayTeam: awayTeam.name,
-        homeScore,
-        awayScore,
-        date: matchDate || new Date().toISOString(),
-        played: homeScore !== null && awayScore !== null,
-        confirmed: false
-    };
-    
-    // Обновляем статистику команд
-    if (newMatch.played) {
-        updateTeamStats(homeTeamId, awayTeamId, homeScore, awayScore);
-    }
-    
-    leagueData.matches.push(newMatch);
-    await saveData();
-    
-    // Сброс формы
-    ['homeTeam', 'awayTeam', 'homeScore', 'awayScore', 'matchDate'].forEach(id => {
-        document.getElementById(id).value = '';
-    });
-    
-    alert('Матч добавлен!');
-    renderAdminPanel();
-}
-
-function updateTeamStats(homeId, awayId, homeScore, awayScore) {
-    const homeTeam = leagueData.teams.find(t => t.id === homeId);
-    const awayTeam = leagueData.teams.find(t => t.id === awayId);
-    
-    if (!homeTeam || !awayTeam) return;
-    
-    // Обновляем домашнюю команду
-    homeTeam.played++;
-    homeTeam.goalsFor += homeScore;
-    homeTeam.goalsAgainst += awayScore;
-    homeTeam.goalsDifference = homeTeam.goalsFor - homeTeam.goalsAgainst;
-    
-    // Обновляем гостевую команду
-    awayTeam.played++;
-    awayTeam.goalsFor += awayScore;
-    awayTeam.goalsAgainst += homeScore;
-    awayTeam.goalsDifference = awayTeam.goalsFor - awayTeam.goalsAgainst;
-    
-    // Определяем результат
-    if (homeScore > awayScore) {
-        homeTeam.wins++;
-        homeTeam.points += 3;
-        awayTeam.losses++;
-    } else if (homeScore < awayScore) {
-        awayTeam.wins++;
-        awayTeam.points += 3;
-        homeTeam.losses++;
-    } else {
-        homeTeam.draws++;
-        awayTeam.draws++;
-        homeTeam.points += 1;
-        awayTeam.points += 1;
-    }
-}
-
+// Сохранение данных
 async function saveData() {
+    if (!leagueData) {
+        showError('Нет данных для сохранения');
+        return;
+    }
+    
     try {
-        // В реальном приложении здесь будет вызов API для сохранения
-        // await fetch(`${API_URL}/update-data`, {...})
+        showLoading(true, 'Сохранение данных...');
         
-        // Для демонстрации сохраняем в localStorage
-        localStorage.setItem('leagueDataBackup', JSON.stringify(leagueData));
+        const response = await fetch(API_URL, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                action: 'update-data',
+                data: leagueData,
+                secret: ADMIN_SECRET
+            })
+        });
         
-        // Имитируем сохранение на сервер
-        console.log('Данные сохранены:', leagueData);
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(`Ошибка сохранения: ${errorData.error || response.statusText}`);
+        }
+        
+        const result = await response.json();
+        
+        // Обновляем SHA если есть
+        if (result.newSha) {
+            currentDataSHA = result.newSha;
+        }
+        
+        showSuccess('Данные успешно сохранены на сервере!');
+        
+        // Обновляем интерфейс
+        renderAdminPanel();
         
     } catch (error) {
         console.error('Ошибка сохранения:', error);
-        alert('Ошибка сохранения данных');
+        showError(`Ошибка сохранения: ${error.message}`);
+        
+        // Сохраняем локально как backup
+        localStorage.setItem('leagueDataBackup', JSON.stringify(leagueData));
+        showInfo('Данные сохранены локально как backup');
+        
+    } finally {
+        showLoading(false);
     }
 }
 
-function addTeam() {
-    const teamName = prompt('Введите название команды:');
-    if (!teamName) return;
+// Добавление команды
+async function addTeam() {
+    const teamName = document.getElementById('newTeamName').value.trim();
+    const ownerName = document.getElementById('newTeamOwner').value.trim();
+    const group = document.getElementById('newTeamGroup').value;
     
-    const ownerName = prompt('Введите имя владельца:');
-    if (!ownerName) return;
+    if (!teamName || !ownerName) {
+        showError('Заполните название команды и владельца');
+        return;
+    }
     
-    const group = prompt('Введите группу (A, B, C, D):', 'A');
+    // Проверка на дубликат
+    if (leagueData.teams.some(t => t.name.toLowerCase() === teamName.toLowerCase())) {
+        showError('Команда с таким названием уже существует');
+        return;
+    }
     
     const newTeam = {
-        id: Date.now().toString(),
+        id: generateId(),
         name: teamName,
         owner: ownerName,
-        group: group.toUpperCase(),
+        group: group,
         played: 0,
         wins: 0,
         draws: 0,
@@ -394,59 +167,326 @@ function addTeam() {
         goalsAgainst: 0,
         goalsDifference: 0,
         points: 0,
-        registrationDate: new Date().toISOString()
+        registrationDate: new Date().toISOString(),
+        status: 'active'
     };
     
     leagueData.teams.push(newTeam);
-    saveData();
-    renderAdminPanel();
+    
+    // Добавляем уведомление
+    await addNotification(`Добавлена новая команда: ${teamName} (${ownerName})`, 'info');
+    
+    await saveData();
+    
+    // Очищаем форму
+    document.getElementById('newTeamName').value = '';
+    document.getElementById('newTeamOwner').value = '';
 }
 
-function markAllAsRead() {
-    if (leagueData.adminNotifications) {
-        leagueData.adminNotifications.forEach(notif => notif.read = true);
-        saveData();
-        renderAdminPanel();
+// Добавление новости
+async function addNews() {
+    const title = document.getElementById('newsTitle').value.trim();
+    const content = document.getElementById('newsContent').value.trim();
+    
+    if (!title || !content) {
+        showError('Заполните заголовок и текст новости');
+        return;
+    }
+    
+    const newNews = {
+        id: generateId(),
+        title,
+        content,
+        date: new Date().toISOString(),
+        pinned: document.getElementById('newsPinned').checked
+    };
+    
+    if (!leagueData.news) {
+        leagueData.news = [];
+    }
+    
+    leagueData.news.unshift(newNews);
+    
+    await addNotification(`Добавлена новость: ${title}`, 'info');
+    await saveData();
+    
+    // Очищаем форму
+    document.getElementById('newsTitle').value = '';
+    document.getElementById('newsContent').value = '';
+    document.getElementById('newsPinned').checked = false;
+}
+
+// Добавление матча
+async function addMatch() {
+    const homeTeam = document.getElementById('homeTeam').value;
+    const awayTeam = document.getElementById('awayTeam').value;
+    const homeScore = parseInt(document.getElementById('homeScore').value) || 0;
+    const awayScore = parseInt(document.getElementById('awayScore').value) || 0;
+    const matchDate = document.getElementById('matchDate').value || new Date().toISOString();
+    const stage = document.getElementById('matchStage').value;
+    
+    if (!homeTeam || !awayTeam) {
+        showError('Выберите обе команды');
+        return;
+    }
+    
+    if (homeTeam === awayTeam) {
+        showError('Команда не может играть сама с собой');
+        return;
+    }
+    
+    const homeTeamData = leagueData.teams.find(t => t.id === homeTeam);
+    const awayTeamData = leagueData.teams.find(t => t.id === awayTeam);
+    
+    if (!homeTeamData || !awayTeamData) {
+        showError('Одна из команд не найдена');
+        return;
+    }
+    
+    const newMatch = {
+        id: generateId(),
+        homeTeam: homeTeamData.name,
+        homeTeamId: homeTeam,
+        awayTeam: awayTeamData.name,
+        awayTeamId: awayTeam,
+        homeScore,
+        awayScore,
+        date: matchDate,
+        stage,
+        played: homeScore !== null && awayScore !== null,
+        confirmed: false,
+        round: 'Групповой этап'
+    };
+    
+    // Обновляем статистику команд если матч сыгран
+    if (homeScore !== null && awayScore !== null) {
+        updateTeamStats(homeTeam, awayTeam, homeScore, awayScore);
+    }
+    
+    if (!leagueData.matches) {
+        leagueData.matches = [];
+    }
+    
+    leagueData.matches.push(newMatch);
+    
+    await addNotification(`Добавлен матч: ${homeTeamData.name} vs ${awayTeamData.data}`, 'info');
+    await saveData();
+    
+    // Обновляем форму
+    updateMatchForm();
+}
+
+// Обновление статистики команд
+function updateTeamStats(homeId, awayId, homeScore, awayScore) {
+    const homeTeam = leagueData.teams.find(t => t.id === homeId);
+    const awayTeam = leagueData.teams.find(t => t.id === awayId);
+    
+    if (!homeTeam || !awayTeam) return;
+    
+    // Домашняя команда
+    homeTeam.played += 1;
+    homeTeam.goalsFor += homeScore;
+    homeTeam.goalsAgainst += awayScore;
+    homeTeam.goalsDifference = homeTeam.goalsFor - homeTeam.goalsAgainst;
+    
+    // Гостевая команда
+    awayTeam.played += 1;
+    awayTeam.goalsFor += awayScore;
+    awayTeam.goalsAgainst += homeScore;
+    awayTeam.goalsDifference = awayTeam.goalsFor - awayTeam.goalsAgainst;
+    
+    // Определение результата
+    if (homeScore > awayScore) {
+        homeTeam.wins += 1;
+        homeTeam.points += 3;
+        awayTeam.losses += 1;
+    } else if (homeScore < awayScore) {
+        awayTeam.wins += 1;
+        awayTeam.points += 3;
+        homeTeam.losses += 1;
+    } else {
+        homeTeam.draws += 1;
+        awayTeam.draws += 1;
+        homeTeam.points += 1;
+        awayTeam.points += 1;
     }
 }
 
-function updateAllData() {
-    loadData();
-    alert('Данные обновлены!');
+// Добавление уведомления через API
+async function addNotification(message, type = 'info') {
+    try {
+        if (!leagueData.adminNotifications) {
+            leagueData.adminNotifications = [];
+        }
+        
+        const notification = {
+            id: generateId(),
+            message,
+            type,
+            date: new Date().toISOString(),
+            read: false
+        };
+        
+        leagueData.adminNotifications.unshift(notification);
+        
+        // Также отправляем на сервер
+        await fetch(API_URL, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                action: 'add-notification',
+                data: { message, type },
+                secret: ADMIN_SECRET
+            })
+        });
+        
+    } catch (error) {
+        console.error('Ошибка добавления уведомления:', error);
+    }
 }
 
-function resetTournament() {
-    if (!confirm('ВЫ УВЕРЕНЫ? Это сбросит ВСЕ данные турнира!')) return;
+// Отметить все уведомления как прочитанные
+function markAllAsRead() {
+    if (leagueData.adminNotifications) {
+        leagueData.adminNotifications.forEach(n => n.read = true);
+        saveData();
+    }
+}
+
+// Получение статистики
+async function getStats() {
+    try {
+        const response = await fetch(API_URL, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                action: 'stats',
+                secret: ADMIN_SECRET
+            })
+        });
+        
+        if (response.ok) {
+            return await response.json();
+        }
+    } catch (error) {
+        console.error('Ошибка получения статистики:', error);
+    }
     
-    leagueData = {
-        teams: [],
-        matches: [],
-        news: [],
-        adminNotifications: []
+    // Fallback локальная статистика
+    return {
+        teams: leagueData.teams?.length || 0,
+        matches: leagueData.matches?.length || 0,
+        news: leagueData.news?.length || 0,
+        notifications: leagueData.adminNotifications?.length || 0
     };
-    
-    saveData();
-    renderAdminPanel();
 }
 
-function backupData() {
-    const dataStr = JSON.stringify(leagueData, null, 2);
-    const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
+// Генерация ID
+function generateId() {
+    return Date.now().toString(36) + Math.random().toString(36).substr(2);
+}
+
+// Утилиты UI
+function showLoading(show, message = 'Загрузка...') {
+    const loader = document.getElementById('adminLoader') || createLoader();
+    loader.innerHTML = `<div class="loader-message">${message}</div>`;
+    loader.style.display = show ? 'flex' : 'none';
+}
+
+function createLoader() {
+    const loader = document.createElement('div');
+    loader.id = 'adminLoader';
+    loader.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0,0,0,0.8);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 10000;
+        font-size: 20px;
+        color: var(--primary);
+    `;
+    document.body.appendChild(loader);
+    return loader;
+}
+
+function showError(message) {
+    showNotification(message, 'error');
+}
+
+function showSuccess(message) {
+    showNotification(message, 'success');
+}
+
+function showWarning(message) {
+    showNotification(message, 'warning');
+}
+
+function showInfo(message) {
+    showNotification(message, 'info');
+}
+
+function showNotification(message, type = 'info') {
+    const notification = document.createElement('div');
+    notification.className = `admin-notification admin-notification-${type}`;
+    notification.innerHTML = `
+        <div>${message}</div>
+        <button onclick="this.parentElement.remove()">×</button>
+    `;
     
-    const exportFileDefaultName = `league-backup-${new Date().toISOString().split('T')[0]}.json`;
+    notification.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        padding: 15px 20px;
+        background: ${type === 'error' ? 'rgba(255,51,102,0.9)' : 
+                     type === 'success' ? 'rgba(0,255,136,0.9)' : 
+                     type === 'warning' ? 'rgba(255,193,7,0.9)' : 
+                     'rgba(0,204,255,0.9)'};
+        color: ${type === 'success' ? 'black' : 'white'};
+        border-radius: 10px;
+        z-index: 10001;
+        display: flex;
+        align-items: center;
+        gap: 15px;
+        min-width: 300px;
+        max-width: 500px;
+        animation: slideIn 0.3s ease;
+    `;
     
-    const linkElement = document.createElement('a');
-    linkElement.setAttribute('href', dataUri);
-    linkElement.setAttribute('download', exportFileDefaultName);
-    linkElement.click();
+    document.body.appendChild(notification);
+    
+    setTimeout(() => {
+        if (notification.parentElement) {
+            notification.remove();
+        }
+    }, 5000);
 }
 
 // Инициализация
 if (checkAccess()) {
+    // Загружаем данные сразу
     loadData();
+    
     // Автоматическое обновление каждые 30 секунд
-    setInterval(loadData, 30000);
-
+    setInterval(() => {
+        if (document.visibilityState === 'visible') {
+            loadData();
+        }
+    }, 30000);
+    
+    // Обновляем при возвращении на вкладку
+    document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') {
+            loadData();
+        }
+    });
 }
-
-
