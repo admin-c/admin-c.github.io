@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Либилская Лига - FC Mobile</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="manifest" href="manifest.json">
+    <link rel="icon" type="image/x-icon" href="favicon.ico">
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <!-- Анимированный фон -->
+    <div class="animated-bg">
+        <div class="ball"></div>
+        <div class="ball"></div>
+        <div class="ball"></div>
+        <div class="ball"></div>
+        <div class="pitch-lines"></div>
+    </div>
+
+    <!-- Основной контент -->
+    <div class="container">
+        <!-- Шапка -->
+        <header class="header">
+            <div class="logo-container">
+                <div class="logo-icon">
+                    <i class="fas fa-futbol"></i>
+                </div>
+                <h1 class="logo-text">Либилская Лига</h1>
+                <div class="champions-badge">
+                    <i class="fas fa-trophy"></i>
+                </div>
+            </div>
+            <div class="header-buttons">
+                <button id="installBtn" class="btn-install">
+                    <i class="fas fa-download"></i> Установить приложение
+                </button>
+                <button id="themeToggle" class="btn-theme">
+                    <i class="fas fa-moon"></i>
+                </button>
+            </div>
+        </header>
+
+        <!-- Основной экран -->
+        <main class="main-content">
+            <!-- Экран регистрации (виден если пользователь не зарегистрирован) -->
+            <section id="registrationScreen" class="screen active">
+                <div class="hero">
+                    <div class="title-glitch">
+                        <h2>Либилская Лига</h2>
+                        <h2>Либилская Лига</h2>
+                        <h2>Либилская Лига</h2>
+                    </div>
+                    <p class="subtitle">Официальный турнир по FC Mobile. Сезон 2026.</p>
+                    <div class="stats">
+                        <div class="stat">
+                            <span class="stat-number" id="teamsCount">0</span>
+                            <span class="stat-label">Команд</span>
+                        </div>
+                        <div class="stat">
+                            <span class="stat-number">24</span>
+                            <span class="stat-label">До старта</span>
+                        </div>
+                        <div class="stat">
+                            <span class="stat-number">€500</span>
+                            <span class="stat-label">Призовой фонд</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="registration-form">
+                    <h3><i class="fas fa-user-plus"></i> Регистрация команды</h3>
+                    <div class="input-group">
+                        <input type="text" id="teamName" placeholder="Название команды" maxlength="20">
+                        <i class="fas fa-flag"></i>
+                    </div>
+                    <div class="input-group">
+                        <input type="text" id="ownerName" placeholder="Имя владельца (никнейм)" maxlength="15">
+                        <i class="fas fa-user"></i>
+                    </div>
+                    <button id="registerBtn" class="btn-glow">
+                        <i class="fas fa-check"></i> Зарегистрировать команду
+                    </button>
+                    <div class="form-info">
+                        <p><i class="fas fa-info-circle"></i> После регистрации вы попадёте в главное меню. Жеребьёвка групп - 23.01.2026</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Главное меню (скрыто изначально) -->
+            <section id="mainMenuScreen" class="screen">
+                <div class="welcome-header">
+                    <h2>Добро пожаловать, <span id="userTeamName">Команда</span>!</h2>
+                    <p class="user-id">ID: <span id="userId">----</span></p>
+                </div>
+
+                <div class="menu-cards">
+                    <a href="table.html" class="menu-card card-hover">
+                        <div class="card-icon trophy">
+                            <i class="fas fa-trophy"></i>
+                        </div>
+                        <h3>Турнирная таблица</h3>
+                        <p>Актуальное положение команд в лиге</p>
+                        <div class="live-badge">LIVE</div>
+                    </a>
+
+                    <div class="menu-card card-hover">
+                        <div class="card-icon calendar">
+                            <i class="fas fa-calendar-alt"></i>
+                        </div>
+                        <h3>Расписание матчей</h3>
+                        <p>Следующие игры: 24-25.01.2026</p>
+                        <div class="match-count">2 матча</div>
+                    </div>
+
+                    <div class="menu-card card-hover">
+                        <div class="card-icon stats">
+                            <i class="fas fa-chart-line"></i>
+                        </div>
+                        <h3>Статистика команды</h3>
+                        <p>Очки: <span id="userPoints">0</span>, Место: <span id="userPosition">-</span></p>
+                        <div class="progress-bar"><div class="progress-fill"></div></div>
+                    </div>
+
+                    <div class="menu-card card-hover">
+                        <div class="card-icon rules">
+                            <i class="fas fa-book"></i>
+                        </div>
+                        <h3>Правила лиги</h3>
+                        <p>Регламент и условия проведения турнира</p>
+                    </div>
+                </div>
+
+                <!-- Блок новостей -->
+                <div class="news-section">
+                    <h3><i class="fas fa-newspaper"></i> Последние новости лиги</h3>
+                    <div id="newsContainer" class="news-container">
+                        <!-- Новости будут загружены через JS -->
+                    </div>
+                </div>
+
+                <div class="menu-footer">
+                    <button id="logoutBtn" class="btn-secondary">
+                        <i class="fas fa-sign-out-alt"></i> Выйти из аккаунта
+                    </button>
+                    <p class="footer-info">Лига стартует 24.01.2026. Матчи по выходным.</p>
+                </div>
+            </section>
+        </main>
+
+        <!-- Уведомление -->
+        <div id="notification" class="notification"></div>
+    </div>
+
+    <script src="js/app.js"></script>
+</body>
+</html>

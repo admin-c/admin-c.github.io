@@ -1,0 +1,10 @@
+{
+  "functions": {
+    "api/update-data.js": {
+      "maxDuration": 10
+    }
+  },
+  "env": {
+    "ADMIN_SECRET": "Ali"
+  }
+}

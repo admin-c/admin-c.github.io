@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Турнирная таблица - Либилская Лига</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div class="animated-bg">
+        <div class="ball"></div>
+        <div class="ball"></div>
+        <div class="pitch-lines"></div>
+    </div>
+
+    <div class="container">
+        <header class="header">
+            <a href="index.html" class="back-btn">
+                <i class="fas fa-arrow-left"></i> Назад
+            </a>
+            <h1 class="page-title">Турнирная таблица</h1>
+            <div class="header-actions">
+                <span class="last-update" id="lastUpdate">Загрузка...</span>
+            </div>
+        </header>
+
+        <main class="table-container">
+            <div class="table-header">
+                <h2><i class="fas fa-ranking-star"></i> Групповой этап - Сезон 2026</h2>
+                <div class="table-filters">
+                    <div class="filter active" data-group="all">Все группы</div>
+                    <div class="filter" data-group="A">Группа A</div>
+                    <div class="filter" data-group="B">Группа B</div>
+                    <div class="filter" data-group="C">Группа C</div>
+                    <div class="filter" data-group="D">Группа D</div>
+                </div>
+            </div>
+
+            <div class="legend">
+                <div class="legend-item">
+                    <span class="legend-color qual"></span> Выход в плей-офф
+                </div>
+                <div class="legend-item">
+                    <span class="legend-color elim"></span> Выбывание
+                </div>
+                <div class="legend-item">
+                    <i class="fas fa-futbol"></i> Игры
+                </div>
+                <div class="legend-item">
+                    <i class="fas fa-plus-minus"></i> Разница мячей
+                </div>
+                <div class="legend-item">
+                    <i class="fas fa-hashtag"></i> Очки
+                </div>
+            </div>
+
+            <div id="tableContent">
+                <!-- Турнирная таблица будет загружена через JS -->
+                <div class="loading">
+                    <div class="loader"></div>
+                    <p>Загрузка данных лиги...</p>
+                </div>
+            </div>
+
+            <div class="table-notes">
+                <p><i class="fas fa-info-circle"></i> <strong>Система начисления очков:</strong> Победа = 3 очка, Ничья = 1 очко, Поражение = 0</p>
+                <p><i class="fas fa-calendar"></i> <strong>Следующий тур:</strong> 24-25 января 2026</p>
+            </div>
+        </main>
+
+        <div class="floating-stats">
+            <div class="floating-stat">
+                <span class="stat-title">Всего команд</span>
+                <span class="stat-value" id="totalTeams">0</span>
+            </div>
+            <div class="floating-stat">
+                <span class="stat-title">Сыграно матчей</span>
+                <span class="stat-value" id="playedMatches">0</span>
+            </div>
+            <div class="floating-stat">
+                <span class="stat-title">Забито голов</span>
+                <span class="stat-value" id="totalGoals">0</span>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/app.js"></script>
+</body>
+</html>
