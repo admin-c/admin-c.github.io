@@ -1,10 +1,19 @@
 {
-  "functions": {
-    "api/update-data.js": {
-      "maxDuration": 10
+  "rewrites": [
+    {
+      "source": "/admin",
+      "destination": "/admin.html"
     }
-  },
-  "env": {
-    "ADMIN_SECRET": "Ali"
-  }
+  ],
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=0, must-revalidate"
+        }
+      ]
+    }
+  ]
 }
