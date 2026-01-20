@@ -16,25 +16,48 @@ module.exports = async (req, res) => {
     }
 
     try {
-        const { action, data, secret } = req.body;
-
-        // 1. Проверка секрета админки из переменной окружения
-        const ADMIN_SECRET = process.env.ADMIN_SECRET;
-        if (secret !== ADMIN_SECRET) {
-            return res.status(401).json({ 
-                error: 'Unauthorized',
-                message: 'Invalid admin secret'
+        // Парсим тело запроса
+        let body = {};
+        try {
+            if (req.body) {
+                body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
+            }
+        } catch (parseError) {
+            return res.status(400).json({ 
+                error: 'Invalid JSON in request body',
+                message: parseError.message 
             });
         }
 
-        // 2. Получаем GitHub данные из переменных окружения Vercel
+        const { action, data, secret } = body;
+
+        console.log('API Request:', { action, secret: secret ? '***' : 'missing', hasData: !!data });
+
+        // Проверка секрета админки
+        const ADMIN_SECRET = process.env.ADMIN_SECRET;
+        if (!ADMIN_SECRET) {
+            return res.status(500).json({ 
+                error: 'Server configuration error',
+                message: 'ADMIN_SECRET environment variable is not set'
+            });
+        }
+
+        if (secret !== ADMIN_SECRET) {
+            return res.status(401).json({ 
+                error: 'Unauthorized',
+                message: 'Invalid admin secret key'
+            });
+        }
+
+        // Проверка GitHub переменных
         const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
         const GITHUB_REPO = process.env.GITHUB_REPO || 'admin-c/admin-c.github.io';
 
         if (!GITHUB_TOKEN) {
             return res.status(500).json({ 
-                error: 'Server configuration error',
-                message: 'GITHUB_TOKEN environment variable is not set in Vercel'
+                error: 'GitHub configuration error',
+                message: 'GITHUB_TOKEN environment variable is not set in Vercel',
+                help: 'Add GITHUB_TOKEN to Environment Variables in Vercel Dashboard'
             });
         }
 
@@ -42,21 +65,35 @@ module.exports = async (req, res) => {
         if (!owner || !repo) {
             return res.status(500).json({ 
                 error: 'Invalid repository configuration',
-                message: 'GITHUB_REPO should be in format: owner/repo-name'
+                message: `GITHUB_REPO should be in format: owner/repo-name. Got: ${GITHUB_REPO}`
             });
         }
 
-        // 3. Инициализация Octokit с токеном из переменных окружения
+        // Инициализация Octokit
         const octokit = new Octokit({
             auth: GITHUB_TOKEN,
             userAgent: 'FC-Mobile-League/1.0.0',
-            timeZone: 'Europe/Moscow'
+            timeZone: 'Europe/Moscow',
+            log: console
         });
 
-        // 4. Обработка действий
+        // Проверка подключения к GitHub
+        try {
+            await octokit.repos.get({ owner, repo });
+            console.log('GitHub connection successful to:', `${owner}/${repo}`);
+        } catch (githubError) {
+            console.error('GitHub connection failed:', githubError.message);
+            return res.status(500).json({
+                error: 'GitHub connection failed',
+                message: githubError.message,
+                details: `Repository: ${owner}/${repo}`,
+                status: githubError.status
+            });
+        }
+
+        // Обработка действий
         if (action === 'get-data') {
             try {
-                // Получаем текущий файл data.json из репозитория
                 const { data: fileData } = await octokit.repos.getContent({
                     owner,
                     repo,
@@ -72,13 +109,14 @@ module.exports = async (req, res) => {
                     _meta: {
                         sha: fileData.sha,
                         lastFetched: new Date().toISOString(),
-                        repo: GITHUB_REPO
+                        repo: GITHUB_REPO,
+                        size: content.length
                     }
                 });
 
             } catch (githubError) {
-                // Если файл не найден (404), создаём начальную структуру
                 if (githubError.status === 404) {
+                    // Создаём начальный файл
                     const initialData = {
                         teams: [],
                         matches: [],
@@ -100,17 +138,12 @@ module.exports = async (req, res) => {
                         lastUpdated: new Date().toISOString()
                     };
 
-                    // Создаём файл в репозитории
                     await octokit.repos.createOrUpdateFileContents({
                         owner,
                         repo,
                         path: 'data.json',
                         message: 'Initial data file for FC Mobile League',
-                        content: Buffer.from(JSON.stringify(initialData, null, 2)).toString('base64'),
-                        committer: {
-                            name: 'League Admin',
-                            email: 'admin@league.com'
-                        }
+                        content: Buffer.from(JSON.stringify(initialData, null, 2)).toString('base64')
                     });
 
                     return res.status(200).json({
@@ -122,18 +155,16 @@ module.exports = async (req, res) => {
                         }
                     });
                 }
-
-                // Другие ошибки GitHub
                 throw githubError;
             }
         }
 
         if (action === 'update-data') {
             if (!data) {
-                return res.status(400).json({ error: 'No data provided' });
+                return res.status(400).json({ error: 'No data provided for update' });
             }
 
-            // Получаем текущий SHA файла
+            // Получаем текущий SHA
             let currentSha = null;
             try {
                 const { data: fileData } = await octokit.repos.getContent({
@@ -144,11 +175,10 @@ module.exports = async (req, res) => {
                 });
                 currentSha = fileData.sha;
             } catch (error) {
-                // Если файла нет, SHA будет null
                 if (error.status !== 404) throw error;
             }
 
-            // Обновляем файл в репозитории
+            // Обновляем данные
             const { data: updateResult } = await octokit.repos.createOrUpdateFileContents({
                 owner,
                 repo,
@@ -156,11 +186,7 @@ module.exports = async (req, res) => {
                 message: `Update league data: ${new Date().toLocaleDateString('ru-RU')}`,
                 content: Buffer.from(JSON.stringify(data, null, 2)).toString('base64'),
                 sha: currentSha,
-                branch: 'main',
-                committer: {
-                    name: 'League Admin',
-                    email: 'admin@league.com'
-                }
+                branch: 'main'
             });
 
             return res.status(200).json({
@@ -171,12 +197,16 @@ module.exports = async (req, res) => {
                     url: updateResult.commit.html_url,
                     message: updateResult.commit.message
                 },
-                timestamp: new Date().toISOString()
+                timestamp: new Date().toISOString(),
+                stats: {
+                    teams: data.teams?.length || 0,
+                    matches: data.matches?.length || 0,
+                    news: data.news?.length || 0
+                }
             });
         }
 
         if (action === 'add-notification') {
-            // Получаем текущие данные
             const { data: fileData } = await octokit.repos.getContent({
                 owner,
                 repo,
@@ -187,7 +217,6 @@ module.exports = async (req, res) => {
             const content = Buffer.from(fileData.content, 'base64').toString('utf-8');
             const jsonData = JSON.parse(content);
 
-            // Добавляем уведомление
             if (!jsonData.adminNotifications) {
                 jsonData.adminNotifications = [];
             }
@@ -202,7 +231,6 @@ module.exports = async (req, res) => {
 
             jsonData.adminNotifications.unshift(notification);
 
-            // Сохраняем обновлённые данные
             await octokit.repos.createOrUpdateFileContents({
                 owner,
                 repo,
@@ -214,79 +242,69 @@ module.exports = async (req, res) => {
 
             return res.status(200).json({
                 success: true,
-                notification,
-                message: 'Notification added'
+                notification
             });
         }
 
         if (action === 'health') {
-            // Проверка работоспособности
-            try {
-                // Проверяем доступ к репозиторию
-                await octokit.repos.get({
-                    owner,
-                    repo
-                });
-
-                return res.status(200).json({
-                    status: 'healthy',
-                    github: {
-                        connected: true,
-                        repo: GITHUB_REPO,
-                        permissions: 'read/write'
-                    },
-                    admin: {
-                        secret_configured: !!ADMIN_SECRET
-                    },
-                    timestamp: new Date().toISOString()
-                });
-
-            } catch (healthError) {
-                return res.status(500).json({
-                    status: 'unhealthy',
-                    error: healthError.message,
-                    github: {
-                        connected: false,
-                        repo: GITHUB_REPO
-                    },
-                    timestamp: new Date().toISOString()
-                });
-            }
+            const repoInfo = await octokit.repos.get({ owner, repo });
+            const rateLimit = await octokit.rateLimit.get();
+            
+            return res.status(200).json({
+                status: 'healthy',
+                api: 'working',
+                github: {
+                    connected: true,
+                    repo: `${owner}/${repo}`,
+                    visibility: repoInfo.data.visibility,
+                    permissions: 'read/write'
+                },
+                environment: {
+                    ADMIN_SECRET: ADMIN_SECRET ? 'configured' : 'missing',
+                    GITHUB_TOKEN: GITHUB_TOKEN ? 'configured' : 'missing',
+                    GITHUB_REPO: GITHUB_REPO
+                },
+                rateLimit: {
+                    remaining: rateLimit.data.rate.remaining,
+                    limit: rateLimit.data.rate.limit,
+                    reset: new Date(rateLimit.data.rate.reset * 1000).toISOString()
+                },
+                timestamp: new Date().toISOString()
+            });
         }
 
-        // Неизвестное действие
         return res.status(400).json({ 
             error: 'Invalid action',
-            supportedActions: ['get-data', 'update-data', 'add-notification', 'health']
+            supportedActions: ['get-data', 'update-data', 'add-notification', 'health'],
+            timestamp: new Date().toISOString()
         });
 
     } catch (error) {
-        console.error('API Error:', {
+        console.error('API Error Details:', {
             message: error.message,
             status: error.status,
             request: error.request,
-            response: error.response?.data
+            response: error.response?.data,
+            stack: error.stack
         });
 
-        // Обработка специфических ошибок GitHub
-        let errorMessage = 'Internal Server Error';
-        let statusCode = 500;
+        const errorResponse = {
+            error: 'Internal Server Error',
+            message: error.message,
+            timestamp: new Date().toISOString()
+        };
 
         if (error.status === 401) {
-            errorMessage = 'GitHub Authentication Failed: Invalid or expired token';
-            statusCode = 401;
+            errorResponse.error = 'GitHub Authentication Failed';
+            errorResponse.message = 'Invalid or expired GITHUB_TOKEN';
         } else if (error.status === 403) {
-            errorMessage = 'GitHub API Rate Limit Exceeded';
-            statusCode = 429;
+            errorResponse.error = 'GitHub API Rate Limit';
+            errorResponse.message = 'Too many requests to GitHub API';
         } else if (error.status === 404) {
-            errorMessage = `Repository not found: ${process.env.GITHUB_REPO}`;
-            statusCode = 404;
+            errorResponse.error = 'Repository Not Found';
+            errorResponse.message = `Check GITHUB_REPO: ${process.env.GITHUB_REPO}`;
         }
 
-        return res.status(statusCode).json({
-            error: errorMessage,
-            details: process.env.NODE_ENV === 'development' ? error.message : undefined,
-            timestamp: new Date().toISOString()
-        });
+        return res.status(error.status || 500).json(errorResponse);
     }
 };
