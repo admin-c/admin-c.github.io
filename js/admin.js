@@ -1,6 +1,6 @@
 // Конфигурация
 const ADMIN_SECRET = 'Ali';
-const API_URL = 'https://ваш-проект.vercel.app/api';
+const API_URL = 'https://champions-league-mu.vercel.app/api';
 
 let leagueData = null;
 
@@ -393,4 +393,5 @@ if (checkAccess()) {
     loadData();
     // Автоматическое обновление каждые 30 секунд
     setInterval(loadData, 30000);
+
 }
